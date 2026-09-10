@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RescuENet AI — Emergency SOS Portal</title>
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        h2 { color: #ef4444; margin-top: 0; font-size: 1.5rem; text-align: center; }
+        p.subtitle { text-align: center; color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #cbd5e1; }
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 0.95rem; }
+        input:focus, textarea:focus { outline: none; border-color: #ef4444; }
+        button { width: 100%; padding: 14px; background: #dc2626; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #b91c1c; }
+        button:disabled { background: #64748b; cursor: not-allowed; }
+        #responseBox { margin-top: 20px; padding: 12px; border-radius: 6px; display: none; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all; }
+        .success { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
+        .error { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🚨 RescuENet AI Dispatch</h2>
+    <p class="subtitle">Enter distress signal details for real-time triage processing.</p>
+    
+    <form id="sosForm">
+        <label for="endpoint">Cloud Function Endpoint URL</label>
+        <input type="url" id="endpoint" placeholder="https://rescuenet-webhook-xxxx.a.run.app" required>
+
+        <label for="phone">Contact Phone Number</label>
+        <input type="tel" id="phone" value="+15550192834" required>
+
+        <label for="sosText">Distress Message (Include details & coordinates)</label>
+        <textarea id="sosText" rows="4" placeholder="e.g., Severe flooding reaching 2nd floor near 16.5062, 80.6480. 3 people trapped including 1 senior with medical emergency." required></textarea>
+
+        <button type="submit" id="submitBtn">Send Emergency SOS Signal</button>
+    </form>
+
+    <div id="responseBox"></div>
+</div>
+
+<script>
+    document.getElementById('sosForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const endpoint = document.getElementById('endpoint').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const sosText = document.getElementById('sosText').value.trim();
+        const btn = document.getElementById('submitBtn');
+        const box = document.getElementById('responseBox');
+
+        btn.disabled = true;
+        btn.innerText = "Transmitting to Gemini AI...";
+        box.style.display = "none";
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone, sos_text: sosText })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                box.className = "success";
+                box.innerText = "✅ ALERT TRANSMITTED SUCCESSFULLY!\n\nAI Parsed Payload:\n" + JSON.stringify(data.parsed_data, null, 2);
+            } else {
+                box.className = "error";
+                box.innerText = "❌ ERROR: " + (data.message || data.error || "Failed to submit alert.");
+            }
+        } catch (err) {
+            box.className = "error";
+            box.innerText = "❌ NETWORK ERROR: Ensure your Cloud Function endpoint has CORS allowed.\n\nDetails: " + err.message;
+        } finally {
+            box.style.display = "block";
+            btn.disabled = false;
+            btn.innerText = "Send Emergency SOS Signal";
+        }
+    });
+</script>
+
+</body>
+</html>
